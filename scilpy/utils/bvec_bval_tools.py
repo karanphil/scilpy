@@ -98,7 +98,7 @@ def get_shell_indices(bvals, shell, tol=10):
         np.logical_and(bvals < shell + tol, bvals > shell - tol))[0]
 
 
-def get_list_bvals(bval, tol=20):
+def get_list_bvals(bvals, tol=20):
     """
     List each b-values
 
