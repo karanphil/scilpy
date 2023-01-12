@@ -19,7 +19,6 @@ import random
 from dipy.io.gradients import read_bvals_bvecs
 from scilpy.io.utils import (assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)
-from scilpy.gradientsampling.multiple_shell_energy import(electrostatic_repulsion, compute_weights)
 
 
 def _build_arg_parser():
@@ -41,13 +40,42 @@ def _build_arg_parser():
                    help='The tolerated gap between the b-values to '
                         'extract and the current b-value. [%(default)s]')
     p.add_argument('--nb_iter',
-                   type=int, default=10000,
+                   type=int, default=100,
                    help='Number of iterations.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
+
+
+def electrostatic_repulsion(bvecs, alpha=1.0):
+    """
+    Electrostatic-repulsion objective function. The alpha parameter controls
+    the power repulsion (energy varies as $1 / ralpha$).
+
+    Parameters
+    ---------
+    bvecs : array-like shape (N * 3,)
+        Vectors.
+    alpha : float
+        Controls the power of the repulsion. Default is 1.0
+
+    Returns
+    -------
+    energy : float
+        sum of all interactions between any two vectors.
+    """
+    epsilon = 1e-9
+    N = bvecs.shape[0] // 3
+    bvecs = bvecs.reshape((N, 3))
+    energy = 0.0
+    for i in range(N):
+        indices = (np.arange(N) > i)
+        diffs = ((bvecs[indices] - bvecs[i]) ** 2).sum(1) ** alpha
+        sums = ((bvecs[indices] + bvecs[i]) ** 2).sum(1) ** alpha
+        energy += (1.0 / (diffs + epsilon) + 1.0 / (sums + epsilon)).sum()
+    return energy
 
 
 def main():
@@ -66,19 +94,6 @@ def main():
     bvecs = bvecs[np.argwhere(bvals>args.tolerance)]
     bvecs = np.squeeze(bvecs)
 
-    # Only works for single-shell!!!
-    S = 1
-
-    # Groups of shells and relative coupling weights
-    shell_groups = ()
-    for i in range(S):
-        shell_groups += ([i],)
-
-    shell_groups += (list(range(S)),)
-    alphas = list(len(shell_groups) * (1.0,))
-    weights = compute_weights(S, [bvecs.shape[0]], shell_groups, alphas)
-    print(weights)
-
     new_bvecs = np.zeros(bvecs.shape)
     best_bvecs = []
     best_energies = np.ones(args.nb_subsamples) * 1000000
@@ -90,15 +105,12 @@ def main():
         remaining_bvecs = bvecs
         indices = np.arange(remaining_bvecs.shape[0])
         for sample in range(args.nb_subsamples):
-            print(indices)
-            print(subsamples_length)
             random_indices = random.sample(list(indices), subsamples_length)
             new_bvecs[sample * subsamples_length:(sample + 1) * subsamples_length] = remaining_bvecs[random_indices]
-            remaining_bvecs = np.delete(remaining_bvecs, random_indices)
+            remaining_bvecs = np.delete(remaining_bvecs, random_indices, 0)
             indices = np.arange(remaining_bvecs.shape[0])
-            print(new_bvecs.shape)
-            print(weights.shape)
-            energies[sample] = electrostatic_repulsion(new_bvecs.reshape((new_bvecs.shape[0] * new_bvecs.shape[1],)), weights)
+            energies[sample] = electrostatic_repulsion(new_bvecs.reshape((new_bvecs.shape[0] * new_bvecs.shape[1],)))
+            print(energies)
         if np.mean(energies) < np.mean(best_energies) and np.std(energies) < np.std(best_energies):
             best_energies = energies
             best_bvecs = new_bvecs
