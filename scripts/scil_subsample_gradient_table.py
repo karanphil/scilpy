@@ -2,13 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Generate multi-shell gradient sampling with various processing to accelerate
-acquisition and help artefact correction.
-
-Multi-shell gradient sampling is generated as in [1], the bvecs are then
-flipped to maximize spread for eddy current correction, b0s are interleaved
-at equal spacing and the non-b0 samples are finally shuffled
-to minimize the total diffusion gradient amplitude over a few TR.
+Subsamples a gradient table into a number of samples. Please note that the b0s
+are removed in this process.
 """
 
 import argparse
@@ -31,17 +26,18 @@ def _build_arg_parser():
                    help='Path to the bvals file.')
     p.add_argument('in_bvec',
                    help='Path to the bvecs file.')
-    p.add_argument('out_bvec',
-                   help='Path to the bvecs output file.')
-    p.add_argument('nb_subsamples', type=int)
+    p.add_argument('out_basename',
+                   help='Basename to the bvals and bvecs output files.')
+    p.add_argument('nb_subsamples', type=int,
+                   help='Number of subsamples to make from the input bvecs.')
 
     p.add_argument('--tolerance',
                    type=int, default=20,
                    help='The tolerated gap between the b-values to '
                         'extract and the current b-value. [%(default)s]')
-    p.add_argument('--nb_iter',
-                   type=int, default=100,
-                   help='Number of iterations.')
+    p.add_argument('--nb_iters',
+                   type=int, default=1000000,
+                   help='Number of configurations (iterations) to try.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -83,7 +79,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_outputs_exist(parser, args, args.out_bvec)
+    assert_outputs_exist(parser, args, args.out_basename)
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.getLogger().setLevel(log_level)
@@ -93,30 +89,46 @@ def main():
     # Remove b0s
     bvecs = bvecs[np.argwhere(bvals>args.tolerance)]
     bvecs = np.squeeze(bvecs)
+    bvals = bvals[np.argwhere(bvals>args.tolerance)]
+
+    base_energy = electrostatic_repulsion(bvecs.reshape((bvecs.shape[0] * bvecs.shape[1])))
+    print("Base energy: ", base_energy)
 
     new_bvecs = np.zeros(bvecs.shape)
     best_bvecs = []
-    best_energies = np.ones(args.nb_subsamples) * 1000000
+    best_energies = np.ones(args.nb_subsamples) * base_energy
+    best_energies[0] = 0
+    best_energies[-1] = 0
     energies = np.zeros(args.nb_subsamples)
 
     subsamples_length = int(np.floor(bvecs.shape[0] / args.nb_subsamples))
 
-    for i in range(args.nb_iter):
+    for i in range(args.nb_iters):
         remaining_bvecs = bvecs
         indices = np.arange(remaining_bvecs.shape[0])
         for sample in range(args.nb_subsamples):
             random_indices = random.sample(list(indices), subsamples_length)
             new_bvecs[sample * subsamples_length:(sample + 1) * subsamples_length] = remaining_bvecs[random_indices]
+            energies[sample] = electrostatic_repulsion(remaining_bvecs[random_indices].reshape((remaining_bvecs[random_indices].shape[0] * remaining_bvecs[random_indices].shape[1],)))
             remaining_bvecs = np.delete(remaining_bvecs, random_indices, 0)
             indices = np.arange(remaining_bvecs.shape[0])
-            energies[sample] = electrostatic_repulsion(new_bvecs.reshape((new_bvecs.shape[0] * new_bvecs.shape[1],)))
-            print(energies)
-        if np.mean(energies) < np.mean(best_energies) and np.std(energies) < np.std(best_energies):
-            best_energies = energies
+        if np.mean(energies) <= np.mean(best_energies) and np.std(energies) <= np.std(best_energies):
+            best_energies = np.copy(energies)
             best_bvecs = new_bvecs
 
-    print(best_bvecs)
+    print("Final energies: ", best_energies)
+    print("Finale mean energy and std:", np.mean(best_energies), np.std(best_energies))
+
+    for sample in range(args.nb_subsamples):
+        bvecs_filename = args.out_basename + "_" + str(sample) + ".bvecs"
+        bvals_filename = args.out_basename + "_" + str(sample) + ".bvals"
+        np.savetxt(bvecs_filename, best_bvecs[sample * subsamples_length:(sample + 1) * subsamples_length])
+        np.savetxt(bvals_filename, bvals[sample * subsamples_length:(sample + 1) * subsamples_length])
 
 
 if __name__ == "__main__":
     main()
+
+
+# 223.09925802371586 9.528653657599651
+# [223.37195855 200.81940608 228.73996707 231.04632424 225.6036089 229.24750098 222.8660403 ]
