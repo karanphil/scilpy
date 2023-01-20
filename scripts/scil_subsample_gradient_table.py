@@ -28,8 +28,8 @@ def _build_arg_parser():
                    help='Path to the bvecs file.')
     p.add_argument('out_basename',
                    help='Basename to the bvals and bvecs output files.')
-    p.add_argument('nb_subsamples', type=int,
-                   help='Number of subsamples to make from the input bvecs.')
+    p.add_argument('subsamples_sizes', nargs='+', type=int,
+                   help='Size of the subsamples to make from the input bvecs.')
 
     p.add_argument('--tolerance',
                    type=int, default=20,
@@ -94,22 +94,24 @@ def main():
     base_energy = electrostatic_repulsion(bvecs.reshape((bvecs.shape[0] * bvecs.shape[1])))
     print("Base energy: ", base_energy)
 
+    nb_subsamples = len(args.subsamples_sizes)
+
     new_bvecs = np.zeros(bvecs.shape)
     best_bvecs = []
-    best_energies = np.ones(args.nb_subsamples) * base_energy
-    best_energies[0] = 0
-    best_energies[-1] = 0
-    energies = np.zeros(args.nb_subsamples)
-
-    subsamples_length = int(np.floor(bvecs.shape[0] / args.nb_subsamples))
+    best_energies = np.ones(nb_subsamples) * base_energy
+    if nb_subsamples > 1:
+        best_energies[0] = 0
+        if nb_subsamples > 2:
+            best_energies[-1] = 0
+    energies = np.zeros(nb_subsamples)
 
     for i in range(args.nb_iters):
         remaining_bvecs = bvecs
         indices = np.arange(remaining_bvecs.shape[0])
-        for sample in range(args.nb_subsamples):
-            random_indices = random.sample(list(indices), subsamples_length)
-            new_bvecs[sample * subsamples_length:(sample + 1) * subsamples_length] = remaining_bvecs[random_indices]
-            energies[sample] = electrostatic_repulsion(remaining_bvecs[random_indices].reshape((remaining_bvecs[random_indices].shape[0] * remaining_bvecs[random_indices].shape[1],)))
+        for j, sample_size in enumerate(args.subsamples_sizes):
+            random_indices = random.sample(list(indices), sample_size)
+            new_bvecs[j * sample_size:(j + 1) * sample_size] = remaining_bvecs[random_indices]
+            energies[j] = electrostatic_repulsion(remaining_bvecs[random_indices].reshape((remaining_bvecs[random_indices].shape[0] * remaining_bvecs[random_indices].shape[1],)))
             remaining_bvecs = np.delete(remaining_bvecs, random_indices, 0)
             indices = np.arange(remaining_bvecs.shape[0])
         if np.mean(energies) <= np.mean(best_energies) and np.std(energies) <= np.std(best_energies):
@@ -119,11 +121,11 @@ def main():
     print("Final energies: ", best_energies)
     print("Finale mean energy and std:", np.mean(best_energies), np.std(best_energies))
 
-    for sample in range(args.nb_subsamples):
-        bvecs_filename = args.out_basename + "_" + str(sample) + ".bvec"
-        bvals_filename = args.out_basename + "_" + str(sample) + ".bval"
-        np.savetxt(bvecs_filename, best_bvecs[sample * subsamples_length:(sample + 1) * subsamples_length].T, fmt='%.8f')
-        np.savetxt(bvals_filename, bvals[sample * subsamples_length:(sample + 1) * subsamples_length], fmt='%.3f')
+    for j, sample_size in enumerate(args.subsamples_sizes):
+        bvecs_filename = args.out_basename + "_" + str(j) + ".bvec"
+        bvals_filename = args.out_basename + "_" + str(j) + ".bval"
+        np.savetxt(bvecs_filename, best_bvecs[j * sample_size:(j + 1) * sample_size].T, fmt='%.8f')
+        np.savetxt(bvals_filename, bvals[j * sample_size:(j + 1) * sample_size], fmt='%.3f')
 
 
 if __name__ == "__main__":
