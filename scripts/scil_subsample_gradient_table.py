@@ -79,7 +79,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_outputs_exist(parser, args, args.out_basename)
+    # assert_outputs_exist(parser, args, args.out_basename)
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.getLogger().setLevel(log_level)
@@ -114,16 +114,16 @@ def main():
             indices = np.arange(remaining_bvecs.shape[0])
         if np.mean(energies) <= np.mean(best_energies) and np.std(energies) <= np.std(best_energies):
             best_energies = np.copy(energies)
-            best_bvecs = new_bvecs
+            best_bvecs = np.copy(new_bvecs)
 
     print("Final energies: ", best_energies)
     print("Finale mean energy and std:", np.mean(best_energies), np.std(best_energies))
 
     for sample in range(args.nb_subsamples):
-        bvecs_filename = args.out_basename + "_" + str(sample) + ".bvecs"
-        bvals_filename = args.out_basename + "_" + str(sample) + ".bvals"
-        np.savetxt(bvecs_filename, best_bvecs[sample * subsamples_length:(sample + 1) * subsamples_length])
-        np.savetxt(bvals_filename, bvals[sample * subsamples_length:(sample + 1) * subsamples_length])
+        bvecs_filename = args.out_basename + "_" + str(sample) + ".bvec"
+        bvals_filename = args.out_basename + "_" + str(sample) + ".bval"
+        np.savetxt(bvecs_filename, best_bvecs[sample * subsamples_length:(sample + 1) * subsamples_length].T, fmt='%.8f')
+        np.savetxt(bvals_filename, bvals[sample * subsamples_length:(sample + 1) * subsamples_length], fmt='%.3f')
 
 
 if __name__ == "__main__":
