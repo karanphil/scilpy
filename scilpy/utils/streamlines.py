@@ -141,6 +141,8 @@ def clip_and_normalize_data_for_cmap(args, data):
     if args.min_range is not None or args.max_range is not None:
         data = np.clip(data, args.min_range, args.max_range)
 
+    data = np.where(data==0, np.nan, data)
+
     # get data values range
     if args.min_cmap is not None:
         lbound = args.min_cmap

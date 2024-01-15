@@ -41,6 +41,7 @@ Formerly: scil_assign_custom_color_to_tractogram.py
 import argparse
 import logging
 
+from cmcrameri import cm
 from dipy.io.streamline import save_tractogram
 import nibabel as nib
 import numpy as np
@@ -226,7 +227,11 @@ def main():
     else:
         parser.error('No coloring method specified.')
 
-    color = cmap(values)[:, 0:3] * 255
+    # color = cmap(values)[:, 0:3] * 255
+    color = cm.navia(values)[:, 0:4] # * 255
+    for i in range(color.shape[0]):
+        if np.array_equal(color[i], np.array([0, 0, 0, 0])):
+            color[i] = np.array([0, 0, 0, 0.005])
     if len(color) == len(sft):
         tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
                        (len(sft.streamlines[i]), 1))
