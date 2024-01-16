@@ -22,6 +22,7 @@ import argparse
 import logging
 import os
 
+from cmcrameri import cm
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamline import transform_streamlines
@@ -147,7 +148,8 @@ def plot_glass_brain(args, sft, img, output_filenames):
         display = plotting.plot_glass_brain(img,
                                             black_bg=True,
                                             display_mode=axe,
-                                            alpha=0.5)
+                                            alpha=0.5,
+                                            cmap=cm.navia)
         display.savefig(output_filenames[i], dpi=300)
 
 
@@ -184,20 +186,21 @@ def main():
                          output_filenames_3d+output_filenames_glass)
 
     roi_list_uniform = []
-    for roi in args.roi:
-        if len(roi) not in [1, 4, 5]:
-            parser.error('--roi must be used either with PATH or with '
-                         'PATH R G B  or PATH R G B A')
-        if len(roi) == 1:
-            roi_list_uniform.append([roi[0], 1.0, 1.0, 1.0, 1.0])
-        elif len(roi) == 4:
-            roi_list_uniform.append([roi[0], float(roi[1]) / 255,
-                                     float(roi[2]) / 255,
-                                     float(roi[3]) / 255, 1.0])
-        else:
-            for i in range(4):
-                roi[i+1] = float(roi[i+1]) / 255
-            roi_list_uniform.append(roi)
+    if args.roi:
+        for roi in args.roi:
+            if len(roi) not in [1, 4, 5]:
+                parser.error('--roi must be used either with PATH or with '
+                            'PATH R G B  or PATH R G B A')
+            if len(roi) == 1:
+                roi_list_uniform.append([roi[0], 1.0, 1.0, 1.0, 1.0])
+            elif len(roi) == 4:
+                roi_list_uniform.append([roi[0], float(roi[1]) / 255,
+                                        float(roi[2]) / 255,
+                                        float(roi[3]) / 255, 1.0])
+            else:
+                for i in range(4):
+                    roi[i+1] = float(roi[i+1]) / 255
+                roi_list_uniform.append(roi)
 
     if args.out_dir and not os.path.isdir(args.out_dir):
         os.mkdir(args.out_dir)
@@ -256,11 +259,12 @@ def main():
         sft.to_rasmm()
         colors = []
         normalized_data = reference_data / np.max(reference_data)
-        cmap = get_colormap(args.reference_coloring)
+        # cmap = get_colormap(args.reference_coloring)
+        cmap =cm.navia
         for points in streamlines_vox:
             values = map_coordinates(normalized_data, points.T,
                                      order=1, mode='nearest')
-            colors.append(cmap(values)[:, 0:3])
+            colors.append(cmap(values)[:, 0:4])
     else:
         colors = None
 

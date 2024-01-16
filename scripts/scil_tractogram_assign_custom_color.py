@@ -144,10 +144,11 @@ def save_colorbar(cmap, lbound, ubound, args):
     if not args.horizontal_cbar:
         gradient = np.swapaxes(gradient, 0, 1)
 
+    # plt.rcParams['figure.figsize'] = (8.0, 1.0)
     _, ax = plt.subplots(1, 1)
-    ax.imshow(gradient, origin='lower')
+    ax.imshow(gradient, origin='lower', aspect=0.2)
 
-    ticks_labels = ['{0:.3f}'.format(i) for i in
+    ticks_labels = ['{0:.0f}'.format(i) for i in
                     np.linspace(lbound, ubound, NB_TICKS)]
 
     if args.log:
@@ -190,7 +191,8 @@ def main():
                             'of the provided LUT.\nConsider using '
                             'scil_tractogram_resample_nb_points.py')
 
-    cmap = get_colormap(args.colormap)
+    # cmap = get_colormap(args.colormap)
+    cmap = cm.navia
     if args.use_dps or args.use_dpp or args.load_dps or args.load_dpp:
         if args.use_dps:
             data = np.squeeze(sft.data_per_streamline[args.use_dps])

@@ -88,6 +88,9 @@ def _build_arg_parser():
                    help='RBG values [0, 255] of the color of the background.'
                    '\n[Default: %(default)s]')
     
+    p.add_argument('--out_img',
+                   help='If set, will save the image to this path.')
+    
     add_verbose_arg(p)
     
     return p
@@ -200,13 +203,23 @@ def main():
         line_actor = streamline_actor[args.shape](
             streamlines, colors=color, linewidth=args.width)
         scene.add(line_actor)
+        # scene.reset_camera_tight()
+        #scene.azimuth(90)
+        #scene.roll(90)
+        scene.zoom(2.0)
+        # scene.roll(180)
+        scene.yaw(120)
+        scene.pitch(-90)
 
     # If there's actually streamlines to display
     if len(bundle_filenames):
         # Showtime !
-        showm = window.ShowManager(scene, reset_camera=True)
+        showm = window.ShowManager(scene)#, reset_camera=True)
         showm.initialize()
         showm.start()
+
+        if args.out_img:
+            window.record(showm.scene, size=(4096,2160), out_path=args.out_img)
 
 
 if __name__ == '__main__':
