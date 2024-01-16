@@ -206,10 +206,10 @@ def main():
         # scene.reset_camera_tight()
         #scene.azimuth(90)
         #scene.roll(90)
-        scene.zoom(2.0)
-        # scene.roll(180)
-        scene.yaw(120)
-        scene.pitch(-90)
+        # scene.zoom(2.0)
+        # scene.azimuth(90)
+        #scene.yaw(120)
+        #scene.pitch(-90)
 
     # If there's actually streamlines to display
     if len(bundle_filenames):
@@ -217,6 +217,8 @@ def main():
         showm = window.ShowManager(scene)#, reset_camera=True)
         showm.initialize()
         showm.start()
+
+        print(showm.scene.camera_info())
 
         if args.out_img:
             window.record(showm.scene, size=(4096,2160), out_path=args.out_img)
