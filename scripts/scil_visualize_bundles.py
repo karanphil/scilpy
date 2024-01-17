@@ -202,19 +202,36 @@ def main():
 
         line_actor = streamline_actor[args.shape](
             streamlines, colors=color, linewidth=args.width)
+        if "CC" in filename or "CST" in filename:
+            line_actor.SetOrientation(90, 180, 0)
+        else:
+            if "_R" in filename:
+                line_actor.SetOrientation(0, -90, -90)
+            elif "_L" in filename:
+                line_actor.SetOrientation(180, -90, -90)
         scene.add(line_actor)
         # scene.reset_camera_tight()
         #scene.azimuth(90)
         #scene.roll(90)
         # scene.zoom(2.0)
         # scene.azimuth(90)
-        #scene.yaw(120)
-        #scene.pitch(-90)
+        # if "CC" in filename or "CST" in filename:
+        #     scene.yaw(90)
+        #     scene.pitch(-90)
+        # else:
+        #     print("TOTO")
+        #     scene.yaw(90)
+        #     scene.pitch(180)
+        #     scene.yaw(90)
+        #     # scene.yaw(45)
+        #     #scene.pitch(-90)
+        #     #scene.yaw(90)
 
     # If there's actually streamlines to display
     if len(bundle_filenames):
         # Showtime !
-        showm = window.ShowManager(scene)#, reset_camera=True)
+        # showm = window.show(scene)
+        showm = window.ShowManager(scene, png_magnify=2)#, reset_camera=True)
         showm.initialize()
         showm.start()
 
