@@ -209,6 +209,7 @@ def main():
                 line_actor.SetOrientation(0, -90, -90)
             elif "_L" in filename:
                 line_actor.SetOrientation(180, -90, -90)
+        # line_actor.SetOrientation(90, 180, 0)
         scene.add(line_actor)
         # scene.reset_camera_tight()
         #scene.azimuth(90)
@@ -232,10 +233,10 @@ def main():
         # Showtime !
         # showm = window.show(scene)
         showm = window.ShowManager(scene, png_magnify=2)#, reset_camera=True)
-        showm.initialize()
-        showm.start()
+        # showm.initialize()
+        # showm.start()
 
-        print(showm.scene.camera_info())
+        # print(showm.scene.camera_info())
 
         if args.out_img:
             window.record(showm.scene, size=(4096,2160), out_path=args.out_img)
