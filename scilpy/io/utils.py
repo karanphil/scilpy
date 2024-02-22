@@ -231,11 +231,15 @@ def add_verbose_arg(parser):
                              'the provided level. \nDefault level is warning, '
                              'default when using -v is info.')
 
-    version = importlib.metadata.version('scilpy')
-
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("Scilpy version: {}".format(version))
+    # If we ever want to remove the levelname and the path, this is the kind of
+    # command to do so. Remove the %(levelname)s: for no levelname.
+    # logging.basicConfig(format='%(levelname)s: %(message)s')
     logging.getLogger().setLevel(logging.WARNING)
+
+
+def log_scilpy_version():
+    version = importlib.metadata.version('scilpy')
+    logging.info("Scilpy version: {}".format(version))
 
 
 def add_bbox_arg(parser):
