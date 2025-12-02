@@ -9,7 +9,7 @@ from scilpy.image.utils import volume_iterator
 
 
 def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
-                      block_size=None):
+                      block_size=None, need_all_shells=False):
     """Extracts the DWI volumes that are on specific b-value shells. Many
     shells can be extracted at once by specifying multiple b-values. The
     extracted volumes are in the same order as in the original file.
@@ -39,6 +39,9 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
     block_size : int, optional
         Load the data using this block size. Useful when the data is too
         large to be loaded in memory.
+    need_all_shells : bool, optional
+        If True, raises an error if at least one of the supplied b-values is
+        not present in the data.
 
     Returns
     -------
@@ -55,6 +58,13 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
     """
     indices = [get_bval_indices(bvals, shell, tol=tol)
                for shell in bvals_to_extract]
+    indices_length = [len(indice) for indice in indices]
+    if need_all_shells and 0 in indices_length:
+        missing_bvals = " ".join([str(bval) for bval, length in
+                                  zip(bvals_to_extract,
+                                      indices_length) if length == 0])
+        raise ValueError("At least one of the supplied b-values is not "
+                         "present in the data: [{}]".format(missing_bvals))
     indices = np.unique(np.sort(np.hstack(indices)))
 
     if len(indices) == 0:

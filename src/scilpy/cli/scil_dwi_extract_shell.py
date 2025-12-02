@@ -59,6 +59,9 @@ def _build_arg_parser():
                    metavar='INT', type=int, default=20,
                    help='The tolerated gap between the b-values to  extract\n'
                         'and the actual b-values. [%(default)s]')
+    p.add_argument('--need_all_shells', action='store_true',
+                   help='If set, raises an error if at least one of the\n'
+                        'supplied b-values is not present in the data.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -82,7 +85,7 @@ def main():
 
     indices, shell_data, new_bvals, new_bvecs = extract_dwi_shell(
         img, bvals, bvecs, args.in_bvals_to_extract,
-        args.tolerance, args.block_size)
+        args.tolerance, args.block_size, args.need_all_shells)
 
     logging.info("Selected indices: {}".format(indices))
 
